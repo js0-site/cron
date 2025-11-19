@@ -1,0 +1,43 @@
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: .
+
+      - name: checkout private conf
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository_owner }}/conf
+          token: ${{ secrets.GH_PAT }}
+          path: ../conf
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: ${{inputs.name}}
+        run: |
+          set -ex
+          rm -rf ~/.ssh
+          cd conf
+          chmod 700 ssh
+          chmod 600 ssh/*
+          ln -s ssh ~/.ssh
+          cd ../${{inputs.name}}
+          ./run.sh
